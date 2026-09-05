@@ -121,13 +121,21 @@ kubectl krew uninstall oskar
 
 ### Publishing to the krew-index
 
-`.github/workflows/release.yaml` wires the **krew-release-bot**
-(`rajatjindal/krew-release-bot`): after GoReleaser publishes the GitHub
-Release, the bot renders `.krew.yaml` with real SHA256s and opens the PR to
-the krew-index. The first release is reviewed by krew maintainers; later
-releases are auto-merged version bumps. It needs **no extra secrets**: the
-bot runs as a hosted service and opens the PR from its own fork. It is the
-only publisher configured on purpose (two publishers mean duplicate PRs).
+The **first submission** of a plugin to the krew-index must be a pull
+request opened by a human author: fork `kubernetes-sigs/krew-index`, add
+`plugins/oskar.yaml` (the rendered manifest, with the real SHA256s of a
+published release), and explain how the plugin differs from existing ones.
+The krew-index review rules also forbid usage examples inside
+`description` and `caveats`: describe what the checks do, not how to run
+them. A maintainer reviews it by hand; do not tag maintainers.
+
+Once the plugin is listed, `.github/workflows/release.yaml` takes over with
+the **krew-release-bot** (`rajatjindal/krew-release-bot`): after GoReleaser
+publishes the GitHub Release, the bot renders `.krew.yaml` with real SHA256s
+and opens the version-bump PR, which is auto-merged. It needs **no extra
+secrets**: the bot runs as a hosted service and opens the PR from its own
+fork. It is the only publisher configured on purpose (two publishers mean
+duplicate PRs).
 
 If the bot step fails after the release was published, re-run just the bot
 with the manual `Krew index` workflow. It must run **on the tag**, because
