@@ -4,11 +4,19 @@ name: Krew index
 # exists, without re-running GoReleaser (the Release workflow does both on
 # every tag). Useful when the bot step failed after the release was
 # published, or to re-open a PR the krew maintainers closed.
+#
+# It MUST be dispatched on the tag itself, because krew-release-bot finds
+# the release through the commit the workflow runs on (GITHUB_SHA):
+#
+#   gh workflow run krew.yaml --ref v0.2.1 -f tag=v0.2.1
+#
+# Run from main it fails with "failed to find a release on this specific
+# commit"; the guard step below turns that into a clear message.
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to publish to the krew-index (e.g. v0.2.0)"
+        description: "Release tag to publish to the krew-index (e.g. v0.2.1); dispatch the workflow on that same tag"
         required: true
         type: string
 
@@ -22,6 +30,16 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag }}
+      - name: Ensure the workflow runs on the release tag
+        env:
+          TAG: ${{ inputs.tag }}
+          RUN_SHA: ${{ github.sha }}
+        run: |
+          tag_sha=$(git rev-parse "${TAG}^{commit}")
+          if [ "$tag_sha" != "$RUN_SHA" ]; then
+            echo "::error::krew-release-bot looks the release up by GITHUB_SHA ($RUN_SHA), which is not the commit of $TAG ($tag_sha). Dispatch this workflow on the tag: gh workflow run krew.yaml --ref $TAG -f tag=$TAG"
+            exit 1
+          fi
       - name: Update krew-index
         uses: rajatjindal/krew-release-bot@v0.0.51
         with:

@@ -129,6 +129,7 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^chore:"
+      - "^build\\(deps\\):" # Dependabot bumps
 
 # krew: the krew-index PR is opened by krew-release-bot from the release
 # workflow (.github/workflows/release.yaml), which needs no secret. The

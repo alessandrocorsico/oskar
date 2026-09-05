@@ -50,7 +50,9 @@ spec:
               type: RuntimeDefault
           containers:
             - name: oskar
-              image: ghcr.io/alessandrocorsico/oskar:0.2.0 # <-- pin to a release (tag = version without "v"), add @sha256:<digest>
+              # Tag = version without "v", pinned to the multi-arch index digest
+              # (docker buildx imagetools inspect ghcr.io/alessandrocorsico/oskar:0.2.1).
+              image: ghcr.io/alessandrocorsico/oskar:0.2.1@sha256:bae979f4c41f9d44fdecc0f9f5489da0134952971ace4c53a657b1bda0e9ca5e
               args:
                 - scan
                 - --output=json
