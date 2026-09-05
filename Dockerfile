@@ -7,7 +7,7 @@
 # Official releases are built by GoReleaser from Dockerfile.goreleaser, which
 # reuses the release binaries on the same distroless base.
 
-FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS build
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS build
 ARG TARGETOS
 ARG TARGETARCH
 ARG VERSION=dev
