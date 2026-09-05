@@ -29,70 +29,74 @@ spec:
   # Archive names come from .goreleaser.yaml: oskar_<os>_<arch>.tar.gz
   # (zip on Windows). LICENSE is extracted from every archive, as the
   # krew-index requires.
+  #
+  # Indentation matters: krew-release-bot renders addURIAndSha as
+  # "uri: ...\n    sha256: ..." with a fixed 4-space indent, so platform
+  # entries must sit at 2 spaces and their keys at 4, exactly like this.
   platforms:
-    - selector:
-        matchLabels:
-          os: linux
-          arch: amd64
-      {{addURIAndSha "https://github.com/alessandrocorsico/oskar/releases/download/{{ .TagName }}/oskar_linux_amd64.tar.gz" .TagName }}
-      files:
-        - from: oskar
-          to: "."
-        - from: LICENSE
-          to: "."
-      bin: oskar
-    - selector:
-        matchLabels:
-          os: linux
-          arch: arm64
-      {{addURIAndSha "https://github.com/alessandrocorsico/oskar/releases/download/{{ .TagName }}/oskar_linux_arm64.tar.gz" .TagName }}
-      files:
-        - from: oskar
-          to: "."
-        - from: LICENSE
-          to: "."
-      bin: oskar
-    - selector:
-        matchLabels:
-          os: darwin
-          arch: amd64
-      {{addURIAndSha "https://github.com/alessandrocorsico/oskar/releases/download/{{ .TagName }}/oskar_darwin_amd64.tar.gz" .TagName }}
-      files:
-        - from: oskar
-          to: "."
-        - from: LICENSE
-          to: "."
-      bin: oskar
-    - selector:
-        matchLabels:
-          os: darwin
-          arch: arm64
-      {{addURIAndSha "https://github.com/alessandrocorsico/oskar/releases/download/{{ .TagName }}/oskar_darwin_arm64.tar.gz" .TagName }}
-      files:
-        - from: oskar
-          to: "."
-        - from: LICENSE
-          to: "."
-      bin: oskar
-    - selector:
-        matchLabels:
-          os: windows
-          arch: amd64
-      {{addURIAndSha "https://github.com/alessandrocorsico/oskar/releases/download/{{ .TagName }}/oskar_windows_amd64.zip" .TagName }}
-      files:
-        - from: oskar.exe
-          to: "."
-        - from: LICENSE
-          to: "."
-      bin: oskar.exe
-    - selector:
-        matchLabels:
-          os: windows
-          arch: arm64
-      {{addURIAndSha "https://github.com/alessandrocorsico/oskar/releases/download/{{ .TagName }}/oskar_windows_arm64.zip" .TagName }}
-      files:
-        - from: oskar.exe
-          to: "."
-        - from: LICENSE
-          to: "."
-      bin: oskar.exe
+  - selector:
+      matchLabels:
+        os: linux
+        arch: amd64
+    {{addURIAndSha "https://github.com/alessandrocorsico/oskar/releases/download/{{ .TagName }}/oskar_linux_amd64.tar.gz" .TagName }}
+    files:
+    - from: oskar
+      to: "."
+    - from: LICENSE
+      to: "."
+    bin: oskar
+  - selector:
+      matchLabels:
+        os: linux
+        arch: arm64
+    {{addURIAndSha "https://github.com/alessandrocorsico/oskar/releases/download/{{ .TagName }}/oskar_linux_arm64.tar.gz" .TagName }}
+    files:
+    - from: oskar
+      to: "."
+    - from: LICENSE
+      to: "."
+    bin: oskar
+  - selector:
+      matchLabels:
+        os: darwin
+        arch: amd64
+    {{addURIAndSha "https://github.com/alessandrocorsico/oskar/releases/download/{{ .TagName }}/oskar_darwin_amd64.tar.gz" .TagName }}
+    files:
+    - from: oskar
+      to: "."
+    - from: LICENSE
+      to: "."
+    bin: oskar
+  - selector:
+      matchLabels:
+        os: darwin
+        arch: arm64
+    {{addURIAndSha "https://github.com/alessandrocorsico/oskar/releases/download/{{ .TagName }}/oskar_darwin_arm64.tar.gz" .TagName }}
+    files:
+    - from: oskar
+      to: "."
+    - from: LICENSE
+      to: "."
+    bin: oskar
+  - selector:
+      matchLabels:
+        os: windows
+        arch: amd64
+    {{addURIAndSha "https://github.com/alessandrocorsico/oskar/releases/download/{{ .TagName }}/oskar_windows_amd64.zip" .TagName }}
+    files:
+    - from: oskar.exe
+      to: "."
+    - from: LICENSE
+      to: "."
+    bin: oskar.exe
+  - selector:
+      matchLabels:
+        os: windows
+        arch: arm64
+    {{addURIAndSha "https://github.com/alessandrocorsico/oskar/releases/download/{{ .TagName }}/oskar_windows_arm64.zip" .TagName }}
+    files:
+    - from: oskar.exe
+      to: "."
+    - from: LICENSE
+      to: "."
+    bin: oskar.exe
