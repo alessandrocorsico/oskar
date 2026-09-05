@@ -44,9 +44,11 @@ sboms:
   - artifacts: archive
 
 # Keyless signing of the checksum file (Sigstore, GitHub OIDC identity).
+# cosign 3 writes a single Sigstore bundle (signature + certificate + log
+# entry); the old --output-signature/--output-certificate flags are ignored.
 # Users verify a download with:
 #   cosign verify-blob checksums.txt \
-#     --certificate checksums.txt.pem --signature checksums.txt.sig \
+#     --bundle checksums.txt.sigstore.json \
 #     --certificate-identity-regexp 'https://github.com/alessandrocorsico/oskar/.*' \
 #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
 #   sha256sum -c --ignore-missing checksums.txt
@@ -54,11 +56,10 @@ signs:
   - cmd: cosign
     artifacts: checksum
     output: true
-    certificate: "${artifact}.pem"
+    signature: "${artifact}.sigstore.json"
     args:
       - sign-blob
-      - --output-certificate=${certificate}
-      - --output-signature=${signature}
+      - --bundle=${signature}
       - ${artifact}
       - --yes
 
