@@ -1,0 +1,52 @@
+name: Bug report
+description: A false positive, a missed anomaly, a crash or a wrong exit code
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! False positives are bugs here: a noisy radar gets turned off.
+        Security issues go through the private form instead (see SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: oskar version
+      description: Output of `oskar version`
+      placeholder: v0.2.0 (go1.26.6 linux/amd64)
+    validations:
+      required: true
+  - type: input
+    id: cluster
+    attributes:
+      label: Kubernetes distribution and version
+      placeholder: EKS 1.33, OpenShift 4.19, kind v0.29 ...
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and flags
+      render: shell
+      placeholder: oskar scan -n production --fail-on critical
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: Paste the relevant finding, notice or error. `-o json` output is ideal, redact names if needed.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: objects
+    attributes:
+      label: The objects involved
+      description: For a false positive, the YAML of the object reported and of the object it references (`kubectl get ... -o yaml`, redacted).
+      render: yaml

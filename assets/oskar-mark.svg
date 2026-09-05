@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="OSKAR">
+  <title>OSKAR — Open Source Kubernetes Anomaly Radar</title>
+  <circle cx="200" cy="200" r="143" fill="#0E1B18"/>
+  <path d="M200 200 L200 57 A143 143 0 0 1 323.8 128.5 Z" fill="#1D9E75" opacity="0.16"/>
+  <circle cx="200" cy="200" r="48" fill="none" stroke="#1D9E75" stroke-width="1.1" opacity="0.3"/>
+  <circle cx="200" cy="200" r="95" fill="none" stroke="#1D9E75" stroke-width="1.1" opacity="0.3"/>
+  <circle cx="200" cy="200" r="143" fill="none" stroke="#1D9E75" stroke-width="1.6" opacity="0.55"/>
+  <line x1="57" y1="200" x2="343" y2="200" stroke="#1D9E75" stroke-width="1.1" opacity="0.22"/>
+  <line x1="200" y1="57" x2="200" y2="343" stroke="#1D9E75" stroke-width="1.1" opacity="0.22"/>
+  <line x1="200" y1="200" x2="323.8" y2="128.5" stroke="#5DCAA5" stroke-width="2.2" opacity="0.85"/>
+  <circle cx="257.4" cy="118.1" r="18" fill="#EF9F27" opacity="0.22"/>
+  <circle cx="257.4" cy="118.1" r="8" fill="#EF9F27"/>
+  <polygon points="200,25 336.8,90.9 370.6,238.9 275.9,357.7 124.1,357.7 29.4,238.9 63.2,90.9" fill="none" stroke="#1D9E75" stroke-width="2.8" stroke-linejoin="round"/>
+</svg>

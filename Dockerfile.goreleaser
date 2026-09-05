@@ -1,0 +1,8 @@
+# Used by GoReleaser (see .goreleaser.yaml): the binary is already built and
+# copied into the build context, so this stage only packages it on the same
+# distroless base as the Dockerfile. Labels are passed as build flags.
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY oskar /oskar
+USER 65532:65532
+ENTRYPOINT ["/oskar"]
+CMD ["scan"]

@@ -1,0 +1,15 @@
+.git
+.github
+.gitlab-ci.yml
+.goreleaser.yaml
+.krew.yaml
+.golangci.yml
+bin/
+dist/
+deploy/
+examples/
+assets/
+*.test
+coverage.out
+.DS_Store
+*.md

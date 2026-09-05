@@ -1,0 +1,92 @@
+# Least-privilege RBAC for OSKAR: "list" only. OSKAR never gets, watches or
+# writes anything.
+#
+# About secrets — read this before applying:
+#   * OSKAR requests only kubernetes.io/tls Secrets (server-side field
+#     selector) and drops tls.key the moment the response is decoded.
+#   * BUT a field selector is not an authorization boundary: the rule below
+#     grants "list secrets" cluster-wide, so whoever holds the oskar
+#     ServiceAccount token can read every Secret in the cluster.
+#   * If that is not acceptable, delete the secrets rule and run with
+#     --skip-checks cert-expiry: that check is skipped, everything else works.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: oskar
+  labels:
+    app.kubernetes.io/name: oskar
+    app.kubernetes.io/part-of: oskar
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oskar
+  namespace: oskar
+  labels:
+    app.kubernetes.io/name: oskar
+    app.kubernetes.io/part-of: oskar
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: oskar-readonly
+  labels:
+    app.kubernetes.io/name: oskar
+    app.kubernetes.io/part-of: oskar
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - services
+      - persistentvolumes
+      - persistentvolumeclaims
+      - namespaces
+    verbs: ["list"]
+  # cert-expiry only. Remove this rule to keep oskar away from Secrets.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["list"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["list"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["list"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources:
+      - validatingwebhookconfigurations
+      - mutatingwebhookconfigurations
+    verbs: ["list"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["list"]
+  # Workloads are listed as metadata only (orphaned-hpa); replicasets are
+  # optional and can be dropped if the list is too heavy on your cluster.
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+      - replicasets
+    verbs: ["list"]
+  # Harmless on non-OpenShift clusters (the API group simply doesn't exist).
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oskar-readonly
+  labels:
+    app.kubernetes.io/name: oskar
+    app.kubernetes.io/part-of: oskar
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: oskar-readonly
+subjects:
+  - kind: ServiceAccount
+    name: oskar
+    namespace: oskar

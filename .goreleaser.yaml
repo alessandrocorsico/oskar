@@ -1,0 +1,137 @@
+version: 2
+
+project_name: oskar
+
+before:
+  hooks:
+    # go.sum is committed: verify it instead of rewriting it, so a release
+    # can never silently build against a different dependency graph.
+    - go mod verify
+
+builds:
+  - main: ./cmd/oskar
+    binary: oskar
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/alessandrocorsico/oskar/internal/cli.version={{ .Version }}
+    # Reproducible builds: embed the commit time, not the build time.
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  # name_template MUST match the archive names in .krew.yaml download URIs:
+  # oskar_<os>_<arch>. Windows ships as .zip, the rest as .tar.gz.
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    # Ship the license inside every archive so krew can extract it (required
+    # for acceptance into the krew-index).
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+# Software bill of materials for every archive (syft must be on PATH).
+sboms:
+  - artifacts: archive
+
+# Keyless signing of the checksum file (Sigstore, GitHub OIDC identity).
+# Users verify a download with:
+#   cosign verify-blob checksums.txt \
+#     --certificate checksums.txt.pem --signature checksums.txt.sig \
+#     --certificate-identity-regexp 'https://github.com/alessandrocorsico/oskar/.*' \
+#     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+#   sha256sum -c --ignore-missing checksums.txt
+signs:
+  - cmd: cosign
+    artifacts: checksum
+    output: true
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - --output-certificate=${certificate}
+      - --output-signature=${signature}
+      - ${artifact}
+      - --yes
+
+# Multi-arch image on GHCR built from the release binaries (no second
+# compilation), on the same distroless base as the Dockerfile.
+# NOTE: GoReleaser is phasing `dockers` + `docker_manifests` out in favour of
+# `dockers_v2` (https://goreleaser.com/deprecations#dockers). Migrate before
+# it is removed; `goreleaser check` will say when.
+dockers:
+  - image_templates:
+      - ghcr.io/alessandrocorsico/oskar:{{ .Version }}-amd64
+    use: buildx
+    dockerfile: Dockerfile.goreleaser
+    goarch: amd64
+    build_flag_templates:
+      - --platform=linux/amd64
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.description=Open Source Kubernetes Anomaly Radar
+      - --label=org.opencontainers.image.source={{ .GitURL }}
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --label=org.opencontainers.image.revision={{ .FullCommit }}
+      - --label=org.opencontainers.image.created={{ .Date }}
+      - --label=org.opencontainers.image.licenses=Apache-2.0
+  - image_templates:
+      - ghcr.io/alessandrocorsico/oskar:{{ .Version }}-arm64
+    use: buildx
+    dockerfile: Dockerfile.goreleaser
+    goarch: arm64
+    build_flag_templates:
+      - --platform=linux/arm64
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.description=Open Source Kubernetes Anomaly Radar
+      - --label=org.opencontainers.image.source={{ .GitURL }}
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --label=org.opencontainers.image.revision={{ .FullCommit }}
+      - --label=org.opencontainers.image.created={{ .Date }}
+      - --label=org.opencontainers.image.licenses=Apache-2.0
+
+docker_manifests:
+  - name_template: ghcr.io/alessandrocorsico/oskar:{{ .Version }}
+    image_templates:
+      - ghcr.io/alessandrocorsico/oskar:{{ .Version }}-amd64
+      - ghcr.io/alessandrocorsico/oskar:{{ .Version }}-arm64
+  - name_template: ghcr.io/alessandrocorsico/oskar:latest
+    image_templates:
+      - ghcr.io/alessandrocorsico/oskar:{{ .Version }}-amd64
+      - ghcr.io/alessandrocorsico/oskar:{{ .Version }}-arm64
+
+# Keyless image signature; verify with:
+#   cosign verify ghcr.io/alessandrocorsico/oskar:vX.Y.Z \
+#     --certificate-identity-regexp 'https://github.com/alessandrocorsico/oskar/.*' \
+#     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+docker_signs:
+  - cmd: cosign
+    artifacts: manifests
+    output: true
+    args:
+      - sign
+      - ${artifact}@${digest}
+      - --yes
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+# krew: the krew-index PR is opened by krew-release-bot from the release
+# workflow (.github/workflows/release.yaml), which needs no secret. The
+# native GoReleaser `krews` publisher is deliberately NOT configured: two
+# publishers open duplicate PRs, and a `krews` block "disabled" with
+# skipUpload still templates its token from an env var that does not exist
+# in CI. If you ever switch, remove the bot step first.

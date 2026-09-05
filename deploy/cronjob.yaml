@@ -1,0 +1,77 @@
+# Run OSKAR in-cluster every weekday morning. Apply deploy/rbac.yaml first
+# (or `kubectl apply -k deploy/`).
+#
+# Pin the image to a release tag and, ideally, its digest:
+#   docker buildx imagetools inspect ghcr.io/alessandrocorsico/oskar:vX.Y.Z
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: oskar-scan
+  namespace: oskar
+  labels:
+    app.kubernetes.io/name: oskar
+    app.kubernetes.io/component: scan
+    app.kubernetes.io/part-of: oskar
+spec:
+  schedule: "0 7 * * 1-5"
+  # Kubernetes >= 1.27. Without it the schedule runs in the
+  # kube-controller-manager's time zone, usually UTC.
+  timeZone: "Europe/Rome"
+  concurrencyPolicy: Forbid
+  # A run that cannot start within 10 minutes of its slot is counted as
+  # missed instead of being started late on top of the next one.
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: oskar
+        app.kubernetes.io/component: scan
+        app.kubernetes.io/part-of: oskar
+    spec:
+      backoffLimit: 0
+      # Hard stop. With concurrencyPolicy=Forbid, one scan hanging on an
+      # unresponsive API server would otherwise block every future schedule.
+      activeDeadlineSeconds: 900
+      ttlSecondsAfterFinished: 604800 # keep finished Jobs (and their logs) for 7 days
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: oskar
+            app.kubernetes.io/component: scan
+            app.kubernetes.io/part-of: oskar
+        spec:
+          serviceAccountName: oskar
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: oskar
+              image: ghcr.io/alessandrocorsico/oskar:v0.2.0 # <-- pin to a release, add @sha256:<digest>
+              args:
+                - scan
+                - --output=json
+                - --request-timeout=2m
+                # In a scheduled report you usually want the Job to succeed
+                # even when findings exist; flip to "warning" or "critical"
+                # to make findings fail the Job, so your existing Job
+                # alerting (kube-state-metrics kube_job_failed on the labels
+                # above) becomes the notification channel.
+                - --fail-on=never
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  # Sized for a few thousand pods; raise it on large clusters
+                  # (the pod list dominates memory) or narrow the scan with
+                  # --skip-checks / --checks.
+                  memory: 512Mi
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]

@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - rbac.yaml
+  - cronjob.yaml
+
+# Pin the image once here instead of editing cronjob.yaml:
+#
+# images:
+#   - name: ghcr.io/alessandrocorsico/oskar
+#     newTag: v0.2.0
+#     digest: sha256:<digest from `docker buildx imagetools inspect`>

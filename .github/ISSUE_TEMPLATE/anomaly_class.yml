@@ -1,0 +1,39 @@
+name: New anomaly class (war story)
+description: A silent broken link OSKAR does not catch yet
+labels: [enhancement, check]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        War stories are the best feature requests this project can receive.
+        Describe the incident, then how the broken state looks in the API.
+  - type: textarea
+    id: story
+    attributes:
+      label: What happened
+      description: The symptom users saw, how long triage took, what the root cause turned out to be.
+    validations:
+      required: true
+  - type: textarea
+    id: detection
+    attributes:
+      label: How it looks in the API
+      description: Which objects, which fields, which reference was broken. A `kubectl get ... -o yaml` of the offending state helps a lot.
+      render: yaml
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity you would assign
+      options:
+        - CRITICAL (traffic broken or cluster operations blocked right now)
+        - WARNING (latent risk or degraded state)
+        - INFO (hygiene)
+    validations:
+      required: true
+  - type: textarea
+    id: false_positives
+    attributes:
+      label: Legitimate states that look the same
+      description: Anything that must NOT be reported (transient states during rollouts, intentional configurations, operator-managed objects).

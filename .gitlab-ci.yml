@@ -1,0 +1,59 @@
+# GitLab CI for OSKAR itself — used when the repo is mirrored on a
+# (self-hosted) GitLab instance. The canonical open-source CI lives in
+# .github/workflows/; this file keeps a private mirror first-class.
+
+stages: [test, release]
+
+variables:
+  GOPATH: $CI_PROJECT_DIR/.go
+
+cache:
+  key: gomod
+  paths:
+    - .go/pkg/mod/
+
+test:
+  stage: test
+  image: golang:1.26
+  script:
+    # go.sum is committed: verify it, and fail if tidy would change anything.
+    - go mod verify
+    - go mod tidy && git diff --exit-code -- go.mod go.sum
+    - test -z "$(gofmt -l .)"
+    - go vet ./...
+    - go build ./...
+    - go test -race -coverprofile=coverage.out -covermode=atomic ./...
+    - go tool cover -func=coverage.out | tail -1
+  coverage: '/^total:.*\s(\d+\.\d+)%/'
+
+lint:
+  stage: test
+  image: golangci/golangci-lint:v2.13.2
+  script:
+    - golangci-lint run ./...
+
+vuln:
+  stage: test
+  image: golang:1.26
+  script:
+    - go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+# Tag-driven release with GoReleaser targeting GitLab Releases.
+# Requirements:
+#   - GITLAB_TOKEN: masked CI variable (project access token, scope: api)
+#   - on a self-hosted instance, add to .goreleaser.yaml:
+#       gitlab_urls:
+#         api: https://gitlab.example.it/api/v4/
+#         download: https://gitlab.example.it
+# GoReleaser auto-detects GitLab through the GITLAB_CI environment.
+# The image, SBOM and signature steps need docker, syft and cosign on the
+# runner: the mirror publishes archives and checksums only.
+release:
+  stage: release
+  image:
+    name: goreleaser/goreleaser:v2.18.0
+    entrypoint: [""]
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - goreleaser release --clean --skip=docker,sbom,sign

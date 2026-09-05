@@ -1,0 +1,140 @@
+# OSKAR — reusable GitLab CI scan jobs
+# ------------------------------------
+# Copy this file into your repo (or `include:` it) and extend a variant.
+# Jobs use a stage named "verify" — adapt `stage:` to your pipeline, and add
+# your own `rules:` (by default the variants run on every pipeline).
+#
+# The gate is driven by exit codes: oskar exits 2 when findings reach
+# --fail-on (which fails the job) and 1 when the scan itself could not run
+# (unreachable API server, bad credentials). Tune OSKAR_ARGS per environment.
+#
+# NOTE on the script pattern: GitLab runs `script:` lines with `set -e`, and
+# `oskar ... | tee report` would mask oskar's exit code with tee's. So we
+# write the JSON to a file, capture the real exit code with `|| SCAN_RC=$?`,
+# print the report, and re-exit with the original code.
+
+variables:
+  OSKAR_VERSION: "v0.2.0" # pin to the release you validated
+
+# Download the release archive and verify it against the signed checksums
+# file. If cosign is available on your runner, also verify the checksum
+# signature (see .goreleaser.yaml for the exact command).
+.oskar-install:
+  script:
+    - |
+      set -eu
+      base="https://github.com/alessandrocorsico/oskar/releases/download/${OSKAR_VERSION}"
+      curl -fsSL -o oskar_linux_amd64.tar.gz "${base}/oskar_linux_amd64.tar.gz"
+      curl -fsSL -o checksums.txt "${base}/checksums.txt"
+      grep ' oskar_linux_amd64.tar.gz$' checksums.txt | sha256sum -c -
+      tar -xzf oskar_linux_amd64.tar.gz -C /usr/local/bin oskar
+      rm -f oskar_linux_amd64.tar.gz checksums.txt
+      oskar version
+
+.oskar-scan:
+  script:
+    - oskar scan --output json ${OSKAR_ARGS} > oskar-report.json || SCAN_RC=$?
+    - cat oskar-report.json
+    - exit ${SCAN_RC:-0}
+
+.oskar-scan-base:
+  stage: verify
+  image: alpine:3.24
+  variables:
+    OSKAR_ARGS: "--fail-on critical --request-timeout 2m"
+  before_script:
+    - apk add --no-cache curl >/dev/null
+    - !reference [.oskar-install, script]
+  script:
+    - !reference [.oskar-scan, script]
+  artifacts:
+    when: always
+    paths:
+      - oskar-report.json
+    expire_in: 30 days
+
+# ── Variant 1: kubeconfig as a CI/CD File variable ──────────────────────────
+# Settings → CI/CD → Variables → Add:
+#   Key: KUBECONFIG   Type: File   (masked, protected as needed)
+# GitLab writes the file to disk and exports its path as $KUBECONFIG,
+# which client-go picks up automatically — nothing else to configure.
+oskar:scan:
+  extends: .oskar-scan-base
+
+# ── Variant 2: GitLab Kubernetes Agent ──────────────────────────────────────
+# When the project is authorized for an agent, GitLab injects a kubeconfig
+# whose contexts are named "group/agent-config-project:agent-name".
+# No kubectl needed: oskar selects the context itself.
+oskar:scan:agent:
+  extends: .oskar-scan-base
+  variables:
+    KUBE_CONTEXT: "group/agents-project:agent-name" # <-- your agent context
+    OSKAR_ARGS: "--context ${KUBE_CONTEXT} --fail-on critical --request-timeout 2m"
+
+# ── Variant 3: EKS via aws eks update-kubeconfig ────────────────────────────
+# Credentials: AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY CI variables, or
+# (better) GitLab OIDC federation with an assumed role on the runner.
+# The generated kubeconfig uses the `aws eks get-token` exec plugin, which
+# is why the job runs in the aws-cli image. Pin the image to a full version.
+oskar:scan:eks:
+  extends: .oskar-scan-base
+  image:
+    name: public.ecr.aws/aws-cli/aws-cli:2
+    entrypoint: [""]
+  variables:
+    AWS_DEFAULT_REGION: "eu-south-1"
+    EKS_CLUSTER: "my-eks-cluster"
+  before_script:
+    - yum install -y -q tar gzip
+    - !reference [.oskar-install, script]
+    - aws eks update-kubeconfig --name "${EKS_CLUSTER}"
+
+# ── Variant 4: OpenShift with a ServiceAccount token ────────────────────────
+# OC_SERVER:  the API endpoint.
+# OC_TOKEN:   masked variable holding a SA token (bind it to the read-only
+#             ClusterRole in deploy/rbac.yaml).
+# OC_CA_FILE: File variable with the API server CA bundle
+#             (oc get cm kube-root-ca.crt -o jsonpath='{.data.ca\.crt}').
+# Only for a throwaway lab, replace the certificate-authority line with
+# `insecure-skip-tls-verify: true` — never in a pipeline that gates prod.
+oskar:scan:openshift:
+  extends: .oskar-scan-base
+  variables:
+    OC_SERVER: "https://api.cluster.example.it:6443"
+  before_script:
+    - apk add --no-cache curl >/dev/null
+    - !reference [.oskar-install, script]
+    - export KUBECONFIG="$PWD/kubeconfig"
+    - |
+      cat > "$KUBECONFIG" <<EOF
+      apiVersion: v1
+      kind: Config
+      clusters:
+      - name: ocp
+        cluster:
+          server: ${OC_SERVER}
+          certificate-authority: ${OC_CA_FILE}
+      users:
+      - name: ci
+        user:
+          token: ${OC_TOKEN}
+      contexts:
+      - name: ocp
+        context:
+          cluster: ocp
+          user: ci
+      current-context: ocp
+      EOF
+
+# ── Scheduled radar (CI/CD → Schedules) ─────────────────────────────────────
+# Create a Pipeline Schedule (e.g. weekday mornings): a failed scheduled
+# pipeline *is* the alert — wire GitLab's pipeline-failure notifications
+# (email / Slack / Teams integration) and you get monitoring for free.
+# --strict also fails the job when a resource could not be listed, so a
+# silently degraded scan can never look like a clean one.
+oskar:radar:
+  extends: oskar:scan
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  variables:
+    OSKAR_ARGS: "--fail-on warning --strict --request-timeout 2m"
