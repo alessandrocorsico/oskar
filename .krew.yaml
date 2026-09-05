@@ -7,25 +7,32 @@ spec:
   # The krew-release-bot uses `homepage` to prove ownership: it must be the
   # GitHub repository the releases are published from.
   homepage: https://github.com/alessandrocorsico/oskar
-  shortDescription: "Radar for silent cluster anomalies"
+  # krew-index review rules: describe WHAT the checks do, never HOW to run
+  # them (no command lines in description/caveats); keep shortDescription
+  # within ~50 characters.
+  shortDescription: "Finds broken links: ghost endpoints, dead webhooks"
   description: |
     OSKAR (Open Source Kubernetes Anomaly Radar) performs a read-only scan of
-    the cluster and reports silent state inconsistencies: EndpointSlice
-    entries pointing at dead pods (ghost endpoints), admission webhooks with
-    a missing backend, Ingresses/Routes referencing non-existent Services,
-    Services whose selector matches nothing, expiring TLS certificates,
-    resources stuck in Terminating, Released/Failed PVs and orphaned HPAs.
+    the cluster and reports silent state inconsistencies: the broken links
+    between objects that raise no events and keep every dashboard green.
 
-    It needs only list permissions and works on EKS, AKS, GKE, OpenShift
-    and RKE2 alike. Checks whose resources cannot be listed are skipped
-    with a notice, never run on empty data.
+    Checks: EndpointSlice entries pointing at pods that no longer exist or at
+    IPs the pod does not own (ghost endpoints); admission webhooks whose
+    backend Service is missing or has no ready endpoints; Ingresses and
+    OpenShift Routes referencing non-existent Services or ports; Services
+    whose selector matches no pods; TLS Secrets expired or about to expire;
+    Pods, Namespaces and PVCs stuck in Terminating; Released or Failed
+    PersistentVolumes; HorizontalPodAutoscalers whose scale target is gone.
 
-    After install, run: kubectl oskar scan
+    Every finding carries a remediation hint. Output is a human-readable
+    table or JSON, and exit codes make it usable as a CI/CD gate. It needs
+    only list permissions; a check whose resources cannot be listed is
+    skipped with a notice, never run on empty data.
   caveats: |
-    OSKAR is read-only and needs "list" on the inspected resources
-    (run `kubectl oskar checks` for the exact set).
-    The cert-expiry check lists TLS secrets (type=kubernetes.io/tls only);
-    if your RBAC forbids secret access, run: kubectl oskar scan --skip-checks cert-expiry
+    OSKAR is read-only and needs the "list" verb on the resources it
+    inspects. The certificate check lists Secrets of type kubernetes.io/tls
+    only; if your RBAC forbids access to Secrets, that single check can be
+    disabled and everything else keeps working.
   # Archive names come from .goreleaser.yaml: oskar_<os>_<arch>.tar.gz
   # (zip on Windows). LICENSE is extracted from every archive, as the
   # krew-index requires.
