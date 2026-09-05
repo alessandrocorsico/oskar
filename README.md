@@ -64,12 +64,13 @@ make install-plugin   # -> kubectl oskar scan
 
 **From GitHub Releases**: download the archive for your OS/arch, verify it,
 extract, drop `oskar` somewhere on your PATH. Releases ship a `checksums.txt`
-signed with [cosign](https://docs.sigstore.dev/) (keyless, GitHub OIDC) and
-an SBOM per archive:
+signed with [cosign](https://docs.sigstore.dev/) (keyless, GitHub OIDC; the
+signature, certificate and transparency-log entry travel together in the
+`checksums.txt.sigstore.json` bundle) and an SBOM per archive:
 
 ```bash
 cosign verify-blob checksums.txt \
-  --certificate checksums.txt.pem --signature checksums.txt.sig \
+  --bundle checksums.txt.sigstore.json \
   --certificate-identity-regexp 'https://github.com/alessandrocorsico/oskar/.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 sha256sum -c --ignore-missing checksums.txt
