@@ -26,7 +26,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: sigstore/cosign-installer@v4
+      - uses: sigstore/cosign-installer@v4.1.2
       - uses: anchore/sbom-action/download-syft@v0
       # 1. Build the binaries, archives, checksums, SBOMs, signatures and the
       #    multi-arch image, and publish the GitHub Release.
