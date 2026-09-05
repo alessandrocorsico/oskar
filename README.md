@@ -78,10 +78,10 @@ sha256sum -c --ignore-missing checksums.txt
 
 **Container image**: `ghcr.io/alessandrocorsico/oskar:<version>` (linux/amd64
 and linux/arm64, distroless, non-root, signed). Image tags carry the version
-without the `v` prefix, so release `v0.2.0` is image tag `0.2.0`:
+without the `v` prefix, so release `v0.2.1` is image tag `0.2.1`:
 
 ```bash
-cosign verify ghcr.io/alessandrocorsico/oskar:0.2.0 \
+cosign verify ghcr.io/alessandrocorsico/oskar:0.2.1 \
   --certificate-identity-regexp 'https://github.com/alessandrocorsico/oskar/.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
@@ -103,7 +103,7 @@ template/indentation errors before you ever tag:
 ```bash
 docker run -v "$PWD/.krew.yaml:/tmp/.krew.yaml" \
   ghcr.io/rajatjindal/krew-release-bot:v0.0.51 \
-  krew-release-bot template --tag v0.2.0 --template-file /tmp/.krew.yaml
+  krew-release-bot template --tag v0.2.1 --template-file /tmp/.krew.yaml
 ```
 
 **Install from a real archive** (after your first release exists):
@@ -128,6 +128,14 @@ the krew-index. The first release is reviewed by krew maintainers; later
 releases are auto-merged version bumps. It needs **no extra secrets**: the
 bot runs as a hosted service and opens the PR from its own fork. It is the
 only publisher configured on purpose (two publishers mean duplicate PRs).
+
+If the bot step fails after the release was published, re-run just the bot
+with the manual `Krew index` workflow. It must run **on the tag**, because
+the bot finds the release through the commit it runs on:
+
+```bash
+gh workflow run krew.yaml --ref v0.2.1 -f tag=v0.2.1
+```
 
 > **Ownership, do not skip.** The bot uses the `homepage:` field in
 > `.krew.yaml` to prove you own the plugin: it must equal the GitHub repo
@@ -319,7 +327,7 @@ versioned (`schemaVersion`) and self-describing:
   "schemaVersion": "1",
   "generatedAt": "2026-09-05T07:00:12Z",
   "scan": {
-    "oskarVersion": "v0.2.0",
+    "oskarVersion": "v0.2.1",
     "context": "prod-eks",
     "server": "https://ABC.gr7.eu-south-1.eks.amazonaws.com",
     "checks": [

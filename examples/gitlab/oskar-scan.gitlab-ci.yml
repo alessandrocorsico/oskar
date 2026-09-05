@@ -14,7 +14,7 @@
 # print the report, and re-exit with the original code.
 
 variables:
-  OSKAR_VERSION: "v0.2.0" # pin to the release you validated
+  OSKAR_VERSION: "v0.2.1" # pin to the release you validated
 
 # Download the release archive and verify it against the signed checksums
 # file. If cosign is available on your runner, also verify the checksum
