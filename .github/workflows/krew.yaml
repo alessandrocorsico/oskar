@@ -1,0 +1,29 @@
+name: Krew index
+
+# Manual re-run of the krew-index publication for a release that already
+# exists, without re-running GoReleaser (the Release workflow does both on
+# every tag). Useful when the bot step failed after the release was
+# published, or to re-open a PR the krew maintainers closed.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish to the krew-index (e.g. v0.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  krew:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+      - name: Update krew-index
+        uses: rajatjindal/krew-release-bot@v0.0.51
+        with:
+          krew_template_file: .krew.yaml
+          krew_plugin_release_tag: ${{ inputs.tag }}

@@ -9,5 +9,5 @@ resources:
 #
 # images:
 #   - name: ghcr.io/alessandrocorsico/oskar
-#     newTag: v0.2.0
+#     newTag: "0.2.0"   # image tags have no "v" prefix
 #     digest: sha256:<digest from `docker buildx imagetools inspect`>

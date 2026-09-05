@@ -76,11 +76,12 @@ cosign verify-blob checksums.txt \
 sha256sum -c --ignore-missing checksums.txt
 ```
 
-**Container image**: `ghcr.io/alessandrocorsico/oskar:<tag>` (linux/amd64 and
-linux/arm64, distroless, non-root, signed):
+**Container image**: `ghcr.io/alessandrocorsico/oskar:<version>` (linux/amd64
+and linux/arm64, distroless, non-root, signed). Image tags carry the version
+without the `v` prefix, so release `v0.2.0` is image tag `0.2.0`:
 
 ```bash
-cosign verify ghcr.io/alessandrocorsico/oskar:v0.2.0 \
+cosign verify ghcr.io/alessandrocorsico/oskar:0.2.0 \
   --certificate-identity-regexp 'https://github.com/alessandrocorsico/oskar/.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
